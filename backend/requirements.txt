@@ -1,6 +1,6 @@
 fastapi
-uvicorn
-sentence-transformers
-pydantic
+uvicorn[standard]
+requests
 numpy
-scikit-learn
+python-multipart
+sentence-transformers
