@@ -9,7 +9,9 @@ app = FastAPI(title="RAG Document Q&A API")
 
 @app.on_event("startup")
 async def startup_event():
+    global rag
     print("🔥 FastAPI started successfully")
+    rag = SimpleRAG()
 
 # Allow browser-based front-ends to call this API
 app.add_middleware(
@@ -20,7 +22,7 @@ app.add_middleware(
 )
 
 # Single shared RAG instance for the process lifetime
-rag = SimpleRAG()
+rag = None
 
 
 class QuestionRequest(BaseModel):
@@ -34,7 +36,7 @@ class QuestionRequest(BaseModel):
 def root():
     return {
         "status": "RAG backend running",
-        "indexed_chunks": len(rag.documents),
+        "indexed_chunks": len(rag.documents) if rag and hasattr(rag, "documents") else 0,
     }
 
 # ──────────────────────────────────────────────
@@ -89,6 +91,8 @@ def ask(body: QuestionRequest):
         raise HTTPException(status_code=400, detail="Question must not be empty.")
 
     try:
+        if rag is None:
+            raise HTTPException(status_code=500, detail="RAG not initialized")
         answer = rag.ask(question)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {e}")
