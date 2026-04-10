@@ -11,7 +11,7 @@ app = FastAPI(title="RAG Document Q&A API")
 async def startup_event():
     global rag
     print("🔥 FastAPI started successfully")
-    rag = SimpleRAG()
+    rag = None
 
 # Allow browser-based front-ends to call this API
 app.add_middleware(
@@ -60,7 +60,7 @@ async def upload_file(file: UploadFile = File(...)):
     if not text.strip():
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-    total_chunks = rag.add_text(text)
+    total_chunks = 0
     return {
         "message": f"'{file.filename}' uploaded and indexed.",
         "total_indexed_chunks": total_chunks,
@@ -93,7 +93,7 @@ def ask(body: QuestionRequest):
     try:
         if rag is None:
             raise HTTPException(status_code=500, detail="RAG not initialized")
-        answer = rag.ask(question)
+        answer = "Backend is working (RAG temporarily disabled)"
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {e}")
 
