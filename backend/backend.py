@@ -1,9 +1,15 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from backend.rag_system import SimpleRAG   # flat-layout import (same directory)
+from backend.rag_system import SimpleRAG
+
+print("🚀 Backend starting...")
 
 app = FastAPI(title="RAG Document Q&A API")
+
+@app.on_event("startup")
+async def startup_event():
+    print("🔥 FastAPI started successfully")
 
 # Allow browser-based front-ends to call this API
 app.add_middleware(

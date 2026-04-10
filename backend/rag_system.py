@@ -14,7 +14,6 @@ SIMILARITY_THRESHOLD = 0.30 # minimum cosine score to consider a chunk relevant
 
 class SimpleRAG:
     def __init__(self):
-        self.local_model = SentenceTransformer("all-MiniLM-L6-v2")
         self.documents: list[str] = []
         self.vectors: list[list[float]] = []
 
@@ -36,26 +35,9 @@ class SimpleRAG:
     # Embeddings  (HF API → local fallback)
     # ──────────────────────────────────────────────
     def _embed(self, texts: list[str]) -> list[list[float]]:
-        """Embed a list of texts. Uses HF API when token is present, else local model."""
-        hf_token = os.getenv("HF_TOKEN")
-        if hf_token:
-            try:
-                response = requests.post(
-                    f"https://api-inference.huggingface.co/pipeline/feature-extraction/{HF_EMBED_MODEL}",
-                    headers={"Authorization": f"Bearer {hf_token}"},
-                    json={"inputs": texts},
-                    timeout=15,
-                )
-                response.raise_for_status()
-                result = response.json()
-                # HF returns a flat vector for a single input — normalise to list-of-vectors
-                if result and isinstance(result[0], float):
-                    return [result]
-                return result
-            except Exception as e:
-                print(f"[embed] HF API failed, using local model: {e}")
-
-        return self.local_model.encode(texts, show_progress_bar=False).tolist()
+    # 🔥 Temporary simple embeddings (FAST, no model loading)
+    return [[float(len(t))] for t in texts]
+        
 
     # ──────────────────────────────────────────────
     # Indexing
