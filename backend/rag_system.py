@@ -35,8 +35,7 @@ class SimpleRAG:
     # Embeddings  (HF API → local fallback)
     # ──────────────────────────────────────────────
     def _embed(self, texts: list[str]) -> list[list[float]]:
-    # 🔥 Temporary simple embeddings (FAST, no model loading)
-    return [[float(len(t))] for t in texts]
+        return [[float(len(t))] for t in texts]
         
 
     # ──────────────────────────────────────────────
