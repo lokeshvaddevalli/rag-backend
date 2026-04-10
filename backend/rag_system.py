@@ -75,9 +75,11 @@ HF_LLM_MODEL = "HuggingFaceH4/zephyr-7b-beta"
 def _llm_answer(self, question, context):
     hf_token = os.getenv("HF_TOKEN")
 
-    if not hf_token:
-        return context[:300] + "..."
+    print("LLM function called")           # 👈 ADD HERE
+    print("HF TOKEN:", hf_token)           # 👈 ADD HERE
 
+    if not hf_token:
+        return "⚠️ LLM NOT USED — showing context:\n\n" + context[:300]
     prompt = f"""
 Answer the question using the context below.
 
