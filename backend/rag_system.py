@@ -138,7 +138,8 @@ Answer:
             data = response.json()
 
             if "choices" not in data:
-                return f"❌ BAD RESPONSE FROM GROQ: {data}"
+                print("⚠️ Groq bad response, using fallback")
+                return self._fallback_answer(question, context)
 
             return data["choices"][0]["message"]["content"]
 
