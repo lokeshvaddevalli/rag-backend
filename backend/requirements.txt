@@ -3,4 +3,4 @@ uvicorn[standard]
 requests
 numpy
 python-multipart
-
+httpx

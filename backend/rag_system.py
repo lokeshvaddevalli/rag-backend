@@ -2,6 +2,7 @@ import numpy as np
 import os
 import requests
 import re
+import httpx
 print(" NEW RAG CODE LOADED")
 HF_EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 HF_LLM_MODEL = "google/flan-t5-base"
@@ -94,52 +95,40 @@ class SimpleRAG:
         context = "\n\n".join([self.documents[i] for i in top_indices])
 
         return self._llm_answer(question, context)
-
-    # ---------- LLM ----------
+    
     def _llm_answer(self, question, context):
-        hf_token = os.getenv("HF_TOKEN")
-
-        print("LLM function called")
-        print("HF TOKEN:", hf_token)
-
-        if not hf_token:
-            return "⚠️ LLM NOT USED — showing context:\n\n" + context[:300]
-
+        api_key = os.getenv("GROQ_API_KEY")
+        
+        if not api_key:
+            return "⚠️ No LLM key found"
+        
         prompt = f"""
-You are a helpful AI assistant.
-
-Answer ONLY using the context below.
-If the answer is not present, say "Not found in document."
-
-Context:
-{context}
-
-Question:
-{question}
-
-Answer clearly in 2-3 sentences:
-"""
-
+        You are a precise AI assistant.
+        Use ONLY the context below to answer.
+        If answer is not present, say: "Not found in document."
+        Context:
+        {context}
+        Question:
+        {question}
+        Answer:
+        """
+        
         try:
-            response = requests.post(
-                f"https://api-inference.huggingface.co/models/{HF_LLM_MODEL}",
-                headers={"Authorization": f"Bearer {hf_token}"},
+            response = httpx.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
                 json={
-                    "inputs": prompt,
-                    "parameters": {
-                        "max_length": 150
-                        }
+                "model": "llama3-8b-8192",
+                "messages": [
+                    {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.1,
+                    "max_tokens": 300
                     },
-                    timeout=20,
-            )
-            response.raise_for_status()
-            result = response.json()
-
-            if isinstance(result, list):
-                return result[0]["generated_text"]
-
-            return str(result)
-
+                    timeout=15
+                    )
+            return response.json()["choices"][0]["message"]["content"]
+        
         except Exception as e:
-            print("LLM failed:", e)
-            return context[:300] + "..."
+            print("Groq error:", e)
+            return context[:300]
