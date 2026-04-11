@@ -2,7 +2,7 @@ import numpy as np
 import os
 import requests
 import re
-
+print(" NEW RAG CODE LOADED")
 HF_EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 HF_LLM_MODEL = "HuggingFaceH4/zephyr-7b-beta"
 
