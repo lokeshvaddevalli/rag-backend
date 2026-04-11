@@ -144,4 +144,25 @@ Answer:
 
         except Exception as e:
             print("❌ GROQ ERROR:", e)
-            return f"❌ GROQ FAILED: {str(e)}"
+            return self._fallback_answer(question, context)
+        
+    def _fallback_answer(self, question, context):
+        sentences = context.split(". ")
+        q_words = set(re.findall(r"\w+", question.lower()))
+        scored = []
+        
+        for sent in sentences:
+            words = set(re.findall(r"\w+", sent.lower()))
+            score = len(q_words & words)
+
+            if score > 0:
+                scored.append((score, sent))
+
+        if not scored:
+            return "Not found in document."
+
+        scored.sort(reverse=True)
+
+        top_sentences = [s for _, s in scored[:3]]
+
+        return " ".join(top_sentences) + "."
