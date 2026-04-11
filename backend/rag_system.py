@@ -122,7 +122,7 @@ Answer:
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "llama3-70b-8192",
+                    "model": "llama-3.1-8b-instant",
                     "messages": [
                         {"role": "user", "content": prompt}
                     ],
