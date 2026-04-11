@@ -98,37 +98,34 @@ class SimpleRAG:
     
     def _llm_answer(self, question, context):
         api_key = os.getenv("GROQ_API_KEY")
-        
+        print("🔥 GROQ FUNCTION CALLED")
+        print("🔑 API KEY:", api_key)
         if not api_key:
-            return "⚠️ No LLM key found"
-        
+            return "❌ GROQ API KEY NOT FOUND"
         prompt = f"""
-        You are a precise AI assistant.
-        Use ONLY the context below to answer.
-        If answer is not present, say: "Not found in document."
+        Use ONLY the context to answer.
         Context:
         {context}
+
         Question:
         {question}
         Answer:
         """
-        
         try:
             response = httpx.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
-                "model": "llama3-8b-8192",
-                "messages": [
-                    {"role": "user", "content": prompt}
-                    ],
+                    "model": "llama3-8b-8192",
+                    "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.1,
-                    "max_tokens": 300
+                    "max_tokens": 200
                     },
                     timeout=15
                     )
+            print("📡 GROQ STATUS:", response.status_code)
+            print("📡 GROQ RESPONSE:", response.text)
             return response.json()["choices"][0]["message"]["content"]
-        
         except Exception as e:
-            print("Groq error:", e)
-            return context[:300]
+            print("❌ GROQ ERROR:", e)
+            return "❌ GROQ FAILED"
