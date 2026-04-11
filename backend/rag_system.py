@@ -4,7 +4,7 @@ import requests
 import re
 print(" NEW RAG CODE LOADED")
 HF_EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-HF_LLM_MODEL = "HuggingFaceH4/zephyr-7b-beta"
+HF_LLM_MODEL = "google/flan-t5-base"
 
 
 class SimpleRAG:
@@ -127,11 +127,10 @@ Answer clearly in 2-3 sentences:
                 json={
                     "inputs": prompt,
                     "parameters": {
-                        "max_new_tokens": 150,
-                        "return_full_text": False
-                    }
-                },
-                timeout=20,
+                        "max_length": 150
+                        }
+                    },
+                    timeout=20,
             )
             response.raise_for_status()
             result = response.json()
