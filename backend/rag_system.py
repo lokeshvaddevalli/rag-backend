@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import requests
+import re
 
 HF_EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 HF_LLM_MODEL = "HuggingFaceH4/zephyr-7b-beta"
@@ -11,17 +12,19 @@ class SimpleRAG:
         self.documents = []
         self.vectors = []
 
-    def _chunk_text(self, text, chunk_size=100):
+    # ---------- Better Chunking ----------
+    def _chunk_text(self, text, chunk_size=120, overlap=30):
         words = text.split()
         chunks = []
 
-        for i in range(0, len(words), chunk_size):
+        for i in range(0, len(words), chunk_size - overlap):
             chunk = " ".join(words[i:i + chunk_size])
-            if len(chunk.strip()) > 20:
+            if len(chunk.strip()) > 40:
                 chunks.append(chunk)
 
         return chunks
 
+    # ---------- Embedding ----------
     def _embed(self, texts):
         hf_token = os.getenv("HF_TOKEN")
 
@@ -36,17 +39,22 @@ class SimpleRAG:
                 response.raise_for_status()
                 result = response.json()
 
-                if result and isinstance(result[0], float):
-                    return [np.array(result)]
-
                 return [np.array(v) for v in result]
 
             except Exception as e:
                 print("HF embedding failed:", e)
 
-        # fallback
-        return [np.array([len(t)]) for t in texts]
+        # fallback (consistent dimension)
+        return [np.ones(384) * len(t) for t in texts]
 
+    # ---------- Keyword Scoring ----------
+    def _keyword_score(self, question, text):
+        q_words = set(re.findall(r"\w+", question.lower()))
+        t_words = set(re.findall(r"\w+", text.lower()))
+
+        return len(q_words & t_words)
+
+    # ---------- Add Document ----------
     def add_text(self, text):
         chunks = self._chunk_text(text)
         vectors = self._embed(chunks)
@@ -56,23 +64,38 @@ class SimpleRAG:
 
         return len(self.documents)
 
+    # ---------- Ask ----------
     def ask(self, question):
         if not self.documents:
             return "No document uploaded."
 
         q_vec = np.array(self._embed([question])[0])
+        q_vec = q_vec / (np.linalg.norm(q_vec) + 1e-8)
 
-        sims = []
-        for vec in self.vectors:
+        scores = []
+
+        for i, vec in enumerate(self.vectors):
             vec = np.array(vec)
-            sim = np.dot(q_vec, vec) / (np.linalg.norm(q_vec) * np.linalg.norm(vec))
-            sims.append(sim)
+            vec = vec / (np.linalg.norm(vec) + 1e-8)
 
-        top_indices = np.argsort(sims)[-3:][::-1]
+            # cosine similarity
+            sim = np.dot(q_vec, vec)
+
+            # keyword score
+            kw = self._keyword_score(question, self.documents[i])
+
+            # hybrid score (important)
+            final_score = sim + (0.2 * kw)
+
+            scores.append(final_score)
+
+        # top 5 chunks
+        top_indices = np.argsort(scores)[-5:][::-1]
         context = "\n\n".join([self.documents[i] for i in top_indices])
 
         return self._llm_answer(question, context)
 
+    # ---------- LLM ----------
     def _llm_answer(self, question, context):
         hf_token = os.getenv("HF_TOKEN")
 
@@ -83,7 +106,10 @@ class SimpleRAG:
             return "⚠️ LLM NOT USED — showing context:\n\n" + context[:300]
 
         prompt = f"""
-Answer the question using the context below.
+You are a helpful AI assistant.
+
+Answer ONLY using the context below.
+If the answer is not present, say "Not found in document."
 
 Context:
 {context}
@@ -91,7 +117,7 @@ Context:
 Question:
 {question}
 
-Answer clearly and briefly:
+Answer clearly in 2-3 sentences:
 """
 
         try:
